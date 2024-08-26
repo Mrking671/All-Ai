@@ -37,7 +37,7 @@ DEFAULT_AI = 'chatgpt'
 VERIFICATION_INTERVAL = timedelta(hours=12)  # 12 hours for re-verification
 
 # Channel that users need to join to use the bot
-REQUIRED_CHANNEL = "@purplebotz"  # Replace with your channel
+REQUIRED_CHANNEL = "@terabox_downloader_botfree"  # Replace with your channel
 
 # Channel where logs will be sent
 LOG_CHANNEL = "@chatgptlogs"  # Replace with your log channel
