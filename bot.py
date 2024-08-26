@@ -79,7 +79,7 @@ async def send_join_channel_message(update: Update, context: ContextTypes.DEFAUL
     )
 
 async def send_verification_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    bot_username = "chatgpt490_bot"  # Your bot username
+    bot_username = "Chatgpt44_aibot"  # Your bot username
     verification_link = f"https://t.me/{bot_username}?start=verified"
 
     keyboard = [[InlineKeyboardButton("I'm not a robot", url="https://chatgptgiminiai.blogspot.com/2024/08/verification-page-body-font-family.html")]]
