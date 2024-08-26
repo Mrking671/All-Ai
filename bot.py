@@ -82,7 +82,7 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
     bot_username = "Chatgpt44_aibot"  # Your bot username
     verification_link = f"https://t.me/{bot_username}?start=verified"
 
-    keyboard = [[InlineKeyboardButton("I'm not a robot", url="https://chatgptgiminiai.blogspot.com/2024/08/verification-page-body-font-family.html")]]
+    keyboard = [[InlineKeyboardButton("I'm not a robot", url="https://chatgptgiminiai.blogspot.com/2024/08/ns.html")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
         'Please verify yourself that you are not a robot by clicking the link below. You need to verify every 12 hours to use the bot.\n'
