@@ -119,7 +119,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if data in API_URLS:
         context.user_data['selected_ai'] = data
         await query.answer()
-        await query.edit_message_text(text=f'You are now chatting with {data.capitalize()}_AI.\n To change AI use /start command')
+        await query.edit_message_text(text=f'ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴄʜᴀᴛᴛɪɴɢ ᴡɪᴛʜ {data.capitalize()}_ᴀɪ.\n\nᴛᴏ ᴄʜᴀɴɢᴇ ᴀɪ ᴜsᴇ /start ᴄᴏᴍᴍᴀɴᴅ')
     elif data == 'reset':
         context.user_data['selected_ai'] = DEFAULT_AI
         await query.answer()
