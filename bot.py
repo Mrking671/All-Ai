@@ -97,13 +97,13 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
 
 async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("ChatGPT-4", callback_data='gpt4'), InlineKeyboardButton("Jarvis AI", callback_data='jarvis')],
-        [InlineKeyboardButton("GirlFriend AI", callback_data='girlfriend'), InlineKeyboardButton("Evil AI", callback_data='evil')],
-        [InlineKeyboardButton("LordAI", callback_data='lord'), InlineKeyboardButton("Business AI", callback_data='business')],
-        [InlineKeyboardButton("Developer AI", callback_data='developer'), InlineKeyboardButton("Zenith AI", callback_data='zenith')],
-        [InlineKeyboardButton("Bing AI", callback_data='bing'), InlineKeyboardButton("Meta AI", callback_data='meta')],
-        [InlineKeyboardButton("Blackbox AI", callback_data='blackbox'), InlineKeyboardButton("Qwen AI", callback_data='qwen')],
-        [InlineKeyboardButton("Gemini AI", callback_data='gemini'), InlineKeyboardButton("Default(ChatGPT-3)", callback_data='reset')]
+        [InlineKeyboardButton("ChatGPT-4👑", callback_data='gpt4'), InlineKeyboardButton("Jarvis AI🥳", callback_data='jarvis')],
+        [InlineKeyboardButton("GirlFriend AI🥰", callback_data='girlfriend'), InlineKeyboardButton("Evil AI😡", callback_data='evil')],
+        [InlineKeyboardButton("LordAI🤗", callback_data='lord'), InlineKeyboardButton("Business AI🤑", callback_data='business')],
+        [InlineKeyboardButton("Developer AI🧐", callback_data='developer'), InlineKeyboardButton("Zenith AI😑", callback_data='zenith')],
+        [InlineKeyboardButton("Bing AI🤩", callback_data='bing'), InlineKeyboardButton("Meta AI😤", callback_data='meta')],
+        [InlineKeyboardButton("Blackbox AI🤠", callback_data='blackbox'), InlineKeyboardButton("Qwen AI😋", callback_data='qwen')],
+        [InlineKeyboardButton("Gemini AI🤨", callback_data='gemini'), InlineKeyboardButton("Default(ChatGPT-3🤡)", callback_data='reset')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
