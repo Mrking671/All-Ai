@@ -97,13 +97,13 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
 
 async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("Talk to GirlfriendAI", callback_data='girlfriend'), InlineKeyboardButton("Talk to JarvisAI", callback_data='jarvis')],
-        [InlineKeyboardButton("Talk to ZenithAI", callback_data='zenith'), InlineKeyboardButton("Talk to EvilAI", callback_data='evil')],
-        [InlineKeyboardButton("Talk to LordAI", callback_data='lord'), InlineKeyboardButton("Talk to BusinessAI", callback_data='business')],
-        [InlineKeyboardButton("Talk to DeveloperAI", callback_data='developer'), InlineKeyboardButton("Talk to ChatGPT-4", callback_data='gpt4')],
-        [InlineKeyboardButton("Talk to Bing AI", callback_data='bing'), InlineKeyboardButton("Talk to Meta AI", callback_data='meta')],
-        [InlineKeyboardButton("Talk to Blackbox AI", callback_data='blackbox'), InlineKeyboardButton("Talk to Qwen AI", callback_data='qwen')],
-        [InlineKeyboardButton("Talk to Gemini AI", callback_data='gemini'), InlineKeyboardButton("Reset to ChatGPT-3", callback_data='reset')]
+        [InlineKeyboardButton("ChatGPT-4", callback_data='gpt4'), InlineKeyboardButton("Jarvis AI", callback_data='jarvis')],
+        [InlineKeyboardButton("GirlFriend AI", callback_data='girlfriend'), InlineKeyboardButton("Evil AI", callback_data='evil')],
+        [InlineKeyboardButton("LordAI", callback_data='lord'), InlineKeyboardButton("Business AI", callback_data='business')],
+        [InlineKeyboardButton("Developer AI", callback_data='developer'), InlineKeyboardButton("Zenith AI", callback_data='zenith')],
+        [InlineKeyboardButton("Bing AI", callback_data='bing'), InlineKeyboardButton("Meta AI", callback_data='meta')],
+        [InlineKeyboardButton("Blackbox AI", callback_data='blackbox'), InlineKeyboardButton("Qwen AI", callback_data='qwen')],
+        [InlineKeyboardButton("Gemini AI", callback_data='gemini'), InlineKeyboardButton("Default(ChatGPT-3)", callback_data='reset')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
