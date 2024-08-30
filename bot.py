@@ -12,7 +12,7 @@ from pymongo import MongoClient
 
 # Set up logging
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - %(name__) - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
@@ -90,8 +90,8 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
     keyboard = [[InlineKeyboardButton("I'm not a robot", url="https://chatgptgiminiai.blogspot.com/2024/08/ns.html")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        'ᴘʟᴇᴀsᴇ ᴠᴇʀɪғʏ ᴛʜᴀᴛ ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ʀᴏʙᴏᴛ'
-        'ᴄʟɪᴄᴋ here👇',
+        'Please verify yourself that you are not a robot by clicking the link below. You need to verify every 12 hours to use the bot.\n'
+        'Once verified, you will be redirected back to the bot.',
         reply_markup=reply_markup
     )
 
@@ -136,7 +136,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         user_message = update.message.text
         selected_ai = context.user_data.get('selected_ai', DEFAULT_AI)
         api_url = API_URLS.get(selected_ai, API_URLS[DEFAULT_AI])
-
         try:
             response = requests.get(api_url.format(user_message))
             response_data = response.json()
@@ -147,59 +146,107 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             else:
                 answer = response_data.get("answer", "Sorry, I couldn't understand that.")
 
-            reply_message = await update.message.reply_text(answer)
-
-            # Schedule auto-deletion of the bot's response message after 30 minutes
-            context.job_queue.run_once(delete_message, when=timedelta(minutes=30), context={'chat_id': update.effective_chat.id, 'message_id': reply_message.message_id})
+            await update.message.reply_text(answer)
 
             # Log the message and response to the log channel
             await context.bot.send_message(
                 chat_id=LOG_CHANNEL,
                 text=f"User: {update.message.from_user.username}\nMessage: {user_message}\nResponse: {answer}"
             )
-        except Exception as e:
-            logger.error(f"Error handling message: {e}")
-            await update.message.reply_text("Sorry, something went wrong.")
-    else:
-        # Send a message to the user to verify if not already done
-        await send_verification_message(update, context)
 
-async def delete_message(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Deletes a message after a specified time"""
-    job_context = context.job.context
-    await context.bot.delete_message(chat_id=job_context['chat_id'], message_id=job_context['message_id'])
+            # Schedule message deletion after 30 minutes
+            context.job_queue.run_once(delete_message, 1800, context={'chat_id': update.message.chat_id, 'message_id': update.message.message_id})
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error: {e}")
+            await update.message.reply_text("There was an error retrieving the response. Please try again later.")
+        except ValueError as e:
+            logger.error(f"JSON decoding error: {e}")
+            await update.message.reply_text("Error parsing the response from the API. Please try again later.")
+    else:
+        # User needs to verify again
+        await send_verification_message(update, context)
 
 async def handle_verification_redirect(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
     current_time = datetime.now()
 
-    # Update verification time in database
+    # Update user verification status
     verification_collection.update_one(
         {'user_id': user_id},
         {'$set': {'last_verified': current_time}},
         upsert=True
     )
+    await update.message.reply_text('ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴠᴇʀғɪᴇᴅ!🥰')
+    await send_start_message(update, context)  # Directly send the start message after verification
 
-    await send_start_message(update, context)
+async def delete_message(context):
+    job = context.job
+    try:
+        await context.bot.delete_message(chat_id=job.context['chat_id'], message_id=job.context['message_id'])
+    except Exception as e:
+        logger.error(f"Failed to delete message: {e}")
 
 async def is_user_member_of_channel(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
-    """Checks if the user is a member of the required channel"""
     try:
         member = await context.bot.get_chat_member(chat_id=REQUIRED_CHANNEL, user_id=user_id)
-        return member.status in ["member", "administrator", "creator"]
+        return member.status in ['member', 'administrator', 'creator']
     except Exception as e:
-        logger.error(f"Error checking channel membership: {e}")
+        logger.error(f"Error checking user membership status: {e}")
         return False
 
-def main() -> None:
-    token = os.getenv('TELEGRAM_BOT_TOKEN')  # Replace with your bot's token
-    application = ApplicationBuilder().token(token).build()
+async def error(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.warning(f'Update {update} caused error {context.error}')
 
-    application.add_handler(CommandHandler('start', start))
-    application.add_handler(CallbackQueryHandler(button_handler))
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if str(update.message.from_user.id) not in ADMINS:
+        await update.message.reply_text("You don't have permission to use this command.")
+        return
+
+    message_text = ' '.join(context.args)
+    if not message_text:
+        await update.message.reply_text("Please provide a message to broadcast.")
+        return
+
+    users = verification_collection.find({})
+    for user in users:
+        try:
+            await context.bot.send_message(chat_id=user['user_id'], text=message_text)
+        except Exception as e:
+            logger.error(f"Error sending broadcast to {user['user_id']}: {e}")
+
+async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if str(update.message.from_user.id) not in ADMINS:
+        await update.message.reply_text("You don't have permission to use this command.")
+        return
+
+    user_count = verification_collection.count_documents({})
+    await update.message.reply_text(f"Number of verified users: {user_count}")
+
+def main():
+    # Create the application with the provided bot token
+    application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
+
+    # Add command handlers
+    application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'.*verified.*'), handle_verification_redirect))
+    application.add_handler(CommandHandler("broadcast", broadcast, filters=filters.User(username=ADMINS)))
+    application.add_handler(CommandHandler("stats", stats, filters=filters.User(username=ADMINS)))
 
-    application.run_polling()
+    # Add error handler
+    application.add_error_handler(error)
+
+    # Start the webhook to listen for updates
+    PORT = int(os.environ.get("PORT", 8443))
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Make sure to set this environment variable in your Render settings
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=os.getenv("TELEGRAM_TOKEN"),
+        webhook_url=f"{WEBHOOK_URL}/{os.getenv('TELEGRAM_TOKEN')}"
+    )
 
 if __name__ == '__main__':
     main()
