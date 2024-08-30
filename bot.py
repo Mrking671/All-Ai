@@ -27,7 +27,12 @@ API_URLS = {
     'lord': "https://lord.ashlynn.workers.dev/?question={}&state=Poet",
     'business': "https://bjs-tbc.ashlynn.workers.dev/?username=YourTGI'dhere&question={}",
     'developer': "https://bb-ai.ashlynn.workers.dev/?question={}&state=helper",
-    'gpt4': "https://telesevapi.vercel.app/chat-gpt?question={}"
+    'gpt4': "https://telesevapi.vercel.app/chat-gpt?question={}",
+    'bing': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Bing",
+    'meta': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Llama",
+    'blackbox': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Blackbox",
+    'qwen': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Qwen",
+    'gemini': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Gemini"
 }
 
 # Default AI
@@ -92,19 +97,17 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
 
 async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("Talk to GirlfriendAI", callback_data='girlfriend')],
-        [InlineKeyboardButton("Talk to JarvisAI", callback_data='jarvis')],
-        [InlineKeyboardButton("Talk to ZenithAI", callback_data='zenith')],
-        [InlineKeyboardButton("Talk to EvilAI", callback_data='evil')],
-        [InlineKeyboardButton("Talk to LordAI", callback_data='lord')],
-        [InlineKeyboardButton("Talk to BusinessAI", callback_data='business')],
-        [InlineKeyboardButton("Talk to DeveloperAI", callback_data='developer')],
-        [InlineKeyboardButton("Talk to ChatGPT-4", callback_data='gpt4')],
-        [InlineKeyboardButton("Reset to ChatGPT-3", callback_data='reset')]
+        [InlineKeyboardButton("Talk to GirlfriendAI", callback_data='girlfriend'), InlineKeyboardButton("Talk to JarvisAI", callback_data='jarvis')],
+        [InlineKeyboardButton("Talk to ZenithAI", callback_data='zenith'), InlineKeyboardButton("Talk to EvilAI", callback_data='evil')],
+        [InlineKeyboardButton("Talk to LordAI", callback_data='lord'), InlineKeyboardButton("Talk to BusinessAI", callback_data='business')],
+        [InlineKeyboardButton("Talk to DeveloperAI", callback_data='developer'), InlineKeyboardButton("Talk to ChatGPT-4", callback_data='gpt4')],
+        [InlineKeyboardButton("Talk to Bing AI", callback_data='bing'), InlineKeyboardButton("Talk to Meta AI", callback_data='meta')],
+        [InlineKeyboardButton("Talk to Blackbox AI", callback_data='blackbox'), InlineKeyboardButton("Talk to Qwen AI", callback_data='qwen')],
+        [InlineKeyboardButton("Talk to Gemini AI", callback_data='gemini'), InlineKeyboardButton("Reset to ChatGPT-3", callback_data='reset')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        'Welcome! Choose an AI to talk to by clicking a button. Available options are: GirlfriendAI, JarvisAI, ZenithAI, EvilAI, LordAI, BusinessAI, DeveloperAI, ChatGPT-4.\nDefault is ChatGPT-3'
+        'Welcome! Choose an AI to talk to by clicking a button. Available options are: GirlfriendAI, JarvisAI, ZenithAI, EvilAI, LordAI, BusinessAI, DeveloperAI, ChatGPT-4, Bing AI, Meta AI, Blackbox AI, Qwen AI, Gemini AI.\nDefault is ChatGPT-3.'
         'To reset to ChatGPT-3, click the button below.',
         reply_markup=reply_markup
     )
@@ -134,14 +137,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         selected_ai = context.user_data.get('selected_ai', DEFAULT_AI)
         api_url = API_URLS.get(selected_ai, API_URLS[DEFAULT_AI])
         try:
-            if selected_ai == 'gpt4':
-                response = requests.get(api_url.format(user_message))
-                response_data = response.json()
+            response = requests.get(api_url.format(user_message))
+            response_data = response.json()
+
+            # Check if the response format is from the new AI APIs
+            if 'message' in response_data:
                 answer = response_data.get("message", "Sorry, I couldn't understand that.")
             else:
-                response = requests.get(api_url.format(user_message))
-                response_data = response.json()
                 answer = response_data.get("answer", "Sorry, I couldn't understand that.")
+
             await update.message.reply_text(answer)
             
             # Log the message and response to the log channel
@@ -164,7 +168,7 @@ async def handle_verification_redirect(update: Update, context: ContextTypes.DEF
     user_id = str(update.message.from_user.id)
     current_time = datetime.now()
 
-    # Update user verification status
+# Update user verification status
     verification_collection.update_one(
         {'user_id': user_id},
         {'$set': {'last_verified': current_time}},
