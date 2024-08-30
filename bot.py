@@ -107,8 +107,8 @@ async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        'Welcome! Choose an AI to talk to by clicking a button. Available options are: GirlfriendAI, JarvisAI, ZenithAI, EvilAI, LordAI, BusinessAI, DeveloperAI, ChatGPT-4, Bing AI, Meta AI, Blackbox AI, Qwen AI, Gemini AI.\nDefault is ChatGPT-3.'
-        'To reset to ChatGPT-3, click the button below.',
+        'ᴡᴇʟᴄᴏᴍᴇ👊 ᴄʜᴏᴏsᴇ ᴀɪ ғʀᴏᴍ ʙᴇʟᴏᴡ ʟɪsᴛ👇'
+        'ᴅᴇғᴀᴜʟᴛ ɪs ᴄʜᴀᴛɢᴘᴛ-𝟹',
         reply_markup=reply_markup
     )
 
@@ -174,7 +174,7 @@ async def handle_verification_redirect(update: Update, context: ContextTypes.DEF
         {'$set': {'last_verified': current_time}},
         upsert=True
     )
-    await update.message.reply_text('You are now verified! You can use the bot normally.')
+    await update.message.reply_text('ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴠᴇʀғɪᴇᴅ!🥰')
     await send_start_message(update, context)  # Directly send the start message after verification
 
 async def is_user_member_of_channel(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
