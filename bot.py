@@ -98,11 +98,11 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
     keyboard = [
         [InlineKeyboardButton(
             "I'm not a robot👨‍💼",  # New button (not a web app)
-            url=f"https://api.shareus.io/direct_link?api_key=MENeVZcapqUmOXw9fyRSQm9Z6pu2&pages=3&link=https://t.me/Chatgpt44_aibot?start=verified"  # Direct link to verification start
+            url= f"https://api.shareus.io/direct_link?api_key=MENeVZcapqUmOXw9fyRSQm9Z6pu2&pages=3&link=https://t.me/Chatgpt44_aibot?start=verified"  # Direct link to verification start
         )],
         [InlineKeyboardButton(
             "How to open captcha🔗",  # New button (not a web app)
-            url="https://t.me/disneysworl_d/5"  # Will trigger a callback
+            url= f"https://t.me/disneysworl_d/5" # Will trigger a callback
         )]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -119,9 +119,9 @@ async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         [InlineKeyboardButton("Developer AI🧐", callback_data='developer'), InlineKeyboardButton("Zenith AI😑", callback_data='zenith')],
         [InlineKeyboardButton("Bing AI🤩", callback_data='bing'), InlineKeyboardButton("Meta AI😤", callback_data='meta')],
         [InlineKeyboardButton("Blackbox AI🤠", callback_data='blackbox'), InlineKeyboardButton("Qwen AI😋", callback_data='qwen')],
-        [InlineKeyboardButton("Gemini AI🤨", callback_data='gemini'), InlineKeyboardButton("Horny💋", callback_data='horny')],
-        [InlineKeyboardButton("Cute Girlfriend🧚‍♀️", callback_data='cute_girlfriend'), InlineKeyboardButton("Bestie🫂", callback_data='bestie')],
-        [InlineKeyboardButton("Dark🌑", callback_data='dark'), InlineKeyboardButton("Default(ChatGPT-3🤡)", callback_data='reset')]
+        [InlineKeyboardButton("Gemini AI🤨", callback_data='gemini'), InlineKeyboardButton("Horny AI💋", callback_data='horny')],
+        [InlineKeyboardButton("Cute Girlfriend AI🧚‍♀️", callback_data='cute_girlfriend'), InlineKeyboardButton("Bestie AI🫂", callback_data='bestie')],
+        [InlineKeyboardButton("Dark AI🌑", callback_data='dark'), InlineKeyboardButton("Default(ChatGPT-3🤡)", callback_data='reset')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     message = await update.message.reply_text(
@@ -130,65 +130,94 @@ async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         reply_markup=reply_markup
     )
 
-            # Schedule auto-delete of the message
-        scheduler.add_job(
-            lambda: context.bot.delete_message(chat_id=update.effective_chat.id, message_id=message.message_id),
-            trigger='date',
-            run_date=datetime.now() + timedelta(minutes=30)
-        )
+    # Schedule auto-delete of the message
+    scheduler.add_job(
+        lambda: context.bot.delete_message(chat_id=update.effective_chat.id, message_id=message.message_id),
+        trigger='date',
+        run_date=datetime.now() + timedelta(minutes=30)
+    )
 
-async def handle_ai_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    await query.answer()
+    await query.answer()  # Acknowledge the callback query
 
     user_id = str(update.effective_user.id)
     user_data = verification_collection.find_one({'user_id': user_id})
-    if not user_data or user_data.get('last_verified') is None:
+
+    if user_data:
+        last_verified = user_data.get('last_verified')
+        current_time = datetime.now()
+
+        # Check verification status
+        if last_verified and current_time - last_verified < VERIFICATION_INTERVAL:
+            await query.edit_message_text(text="You are already verified! Select an AI to chat with:")
+        else:
+            await send_verification_message(update, context)
+            return
+    else:
         await send_verification_message(update, context)
         return
 
     selected_ai = query.data
-    user_message = "Hello, how can I assist you today?"  # Replace with actual user input
-    if selected_ai in API_URLS:
-        api_url = API_URLS[selected_ai].format(user_message)
-        response = requests.get(api_url).json()
+    user_message = "Hello, how can I help you today?"
 
-        reply_message = response.get('gpt', response.get('answer', 'Sorry, I did not understand.'))
-        image_url = response.get('image')  # Adjust as per the actual response structure
+    # Get the AI response
+    ai_response, image_url = await get_ai_response(selected_ai, user_message)
 
-        # Send the response message and image if provided
-        if image_url:
-            await query.message.reply_photo(photo=image_url, caption=reply_message)
-        else:
-            await query.message.reply_text(reply_message)
+    if image_url:
+        await context.bot.send_photo(chat_id=update.effective_chat.id, photo=image_url, caption=ai_response)
+    else:
+        await query.edit_message_text(text=ai_response)
 
-        # Schedule auto-delete of the response message
-        scheduler.add_job(
-            lambda: context.bot.delete_message(chat_id=update.effective_chat.id, message_id=query.message.message_id),
-            trigger='date',
-            run_date=datetime.now() + timedelta(minutes=30)
-        )
+    # Schedule auto-delete of the message
+    message = await context.bot.send_message(chat_id=update.effective_chat.id, text="This message will self-destruct in 30 seconds.")
+    scheduler.add_job(
+        lambda: context.bot.delete_message(chat_id=update.effective_chat.id, message_id=message.message_id),
+        trigger='date',
+        run_date=datetime.now() + timedelta(minutes=0.5)  # 30 seconds
+    )
+
+async def get_ai_response(selected_ai: str, user_message: str) -> (str, str):
+    api_url = API_URLS.get(selected_ai, API_URLS[DEFAULT_AI])
+    response = requests.get(api_url.format(user_message)).json()
+    
+    if response.get("status"):
+        image_url = response.get("image_url")  # Assuming the image URL is under this key
+        return response["gpt"], image_url
+    else:
+        return "Sorry, I couldn't fetch the response from the AI.", None
 
 async def is_user_member_of_channel(context, user_id):
     try:
         member = await context.bot.get_chat_member(REQUIRED_CHANNEL, user_id)
-        return member.status in ['member', 'administrator', 'creator']
+        return member.status in ["member", "administrator", "creator"]
     except Exception as e:
         logger.error(f"Error checking membership: {e}")
         return False
 
-async def main():
-    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+async def handle_verification_redirect(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = str(update.message.from_user.id)
+    verification_collection.update_one(
+        {'user_id': user_id},
+        {'$set': {'last_verified': datetime.now()}},
+        upsert=True
+    )
+    await update.message.reply_text("You have been verified! Now you can use the bot.")
+    await send_start_message(update, context)
 
-    # Command handlers
+def main() -> None:
+    application = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
+
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(button_handler))
     
-    # Callback handlers for AI selection
-    application.add_handler(CallbackQueryHandler(handle_ai_selection))
+    # Start the scheduler
+    scheduler.start()
 
-    # Start the webhook
-    application.run_webhook(listen="0.0.0.0", port=int(os.environ.get('PORT', 8443)), url_path=TELEGRAM_BOT_TOKEN)
-    application.bot.set_webhook(WEBHOOK_URL)
+    # Start the bot
+    application.run_webhook(listen="0.0.0.0", port=int(os.environ.get("PORT", 8443)), url_path=os.getenv("TELEGRAM_BOT_TOKEN"))
+    application.bot.setWebhook(f"https://yourdomain.com/{os.getenv('TELEGRAM_BOT_TOKEN')}")  # Update with your domain
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
+
