@@ -205,19 +205,30 @@ async def handle_verification_redirect(update: Update, context: ContextTypes.DEF
     await update.message.reply_text("You have been verified! Now you can use the bot.")
     await send_start_message(update, context)
 
-def main() -> None:
-    application = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
+def main():
+    # Create the application with the provided bot token
+    application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
 
+    # Add command handlers
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button_handler))
-    
-    # Start the scheduler
-    scheduler.start()
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'.*verified.*'), handle_verification_redirect))
+    application.add_handler(CommandHandler("broadcast", broadcast, filters=filters.User(username=ADMINS)))
+    application.add_handler(CommandHandler("stats", stats, filters=filters.User(username=ADMINS)))
 
-    # Start the bot
-    application.run_webhook(listen="0.0.0.0", port=int(os.environ.get("PORT", 8443)), url_path=os.getenv("TELEGRAM_BOT_TOKEN"))
-    application.bot.setWebhook(f"https://all-ai-68ho.onrender.com/{os.getenv('TELEGRAM_BOT_TOKEN')}")  # Update with your domain
+    # Add error handler
+    application.add_error_handler(error)
 
-if __name__ == "__main__":
+    # Start the webhook to listen for updates
+    PORT = int(os.environ.get("PORT", 8443))
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Make sure to set this environment variable in your Render settings
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=os.getenv("TELEGRAM_TOKEN"),
+        webhook_url=f"{WEBHOOK_URL}/{os.getenv('TELEGRAM_TOKEN')}"
+    )
+
+if __name__ == '__main__':
     main()
-
