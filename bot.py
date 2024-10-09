@@ -216,7 +216,7 @@ def main() -> None:
 
     # Start the bot
     application.run_webhook(listen="0.0.0.0", port=int(os.environ.get("PORT", 8443)), url_path=os.getenv("TELEGRAM_BOT_TOKEN"))
-    application.bot.setWebhook(f"https://yourdomain.com/{os.getenv('TELEGRAM_BOT_TOKEN')}")  # Update with your domain
+    application.bot.setWebhook(f"https://all-ai-68ho.onrender.com/{os.getenv('TELEGRAM_BOT_TOKEN')}")  # Update with your domain
 
 if __name__ == "__main__":
     main()
