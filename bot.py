@@ -191,6 +191,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         # User needs to verify again
         await send_verification_message(update, context)
 
+import asyncio
+
 async def main():
     # Create the application with the provided bot token
     application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
@@ -217,4 +219,4 @@ async def main():
     )
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
