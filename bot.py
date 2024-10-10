@@ -191,8 +191,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         # User needs to verify again
         await send_verification_message(update, context)
 
-import asyncio
+# ... other imports ...
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes
 
+# Your other function definitions...
+
+async def handle_verification_redirect(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
+    current_time = datetime.now()
+
+    # Update user verification status
+    verification_collection.update_one(
+        {'user_id': user_id},
+        {'$set': {'last_verified': current_time}},
+        upsert=True
+    )
+    await update.message.reply_text('ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴠᴇʀғɪᴇᴅ!🥰')
+    await send_start_message(update, context)  # Directly send the start message after verification
+
+# Other function definitions...
 async def main():
     # Create the application with the provided bot token
     application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
@@ -201,7 +218,7 @@ async def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'.*verified.*'), handle_verification_redirect))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'.*verified.*'), handle_verification_redirect))  # This should work now
     application.add_handler(CommandHandler("broadcast", broadcast, filters=filters.User(username=ADMINS)))
     application.add_handler(CommandHandler("stats", stats, filters=filters.User(username=ADMINS)))
 
