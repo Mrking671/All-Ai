@@ -34,10 +34,7 @@ API_URLS = {
     'blackbox': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Blackbox",
     'qwen': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Qwen",
     'gemini': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Gemini",
-    'horny': "https://evil.darkhacker7301.workers.dev/?question=hi&model=horny",
-    'cute_girlfriend': "https://evil.darkhacker7301.workers.dev/?question=hi&model=girlfriend",
-    'bestie': "https://evil.darkhacker7301.workers.dev/?question=hi&model=gf",
-    'dark': "https://evil.darkhacker7301.workers.dev/?question=hi&model=dark"
+    'horny': "https://evil.darkhacker7301.workers.dev/?question={}&model=horny"  # Horny AI API
 }
 
 # Default AI
@@ -98,11 +95,11 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
     keyboard = [
         [InlineKeyboardButton(
             "I'm not a robot👨‍💼",  # New button (not a web app)
-            url= f"https://api.shareus.io/direct_link?api_key=MENeVZcapqUmOXw9fyRSQm9Z6pu2&pages=3&link=https://t.me/Chatgpt44_aibot?start=verified"  # Direct link to verification start
+            url=f"https://api.shareus.io/direct_link?api_key=MENeVZcapqUmOXw9fyRSQm9Z6pu2&pages=3&link=https://t.me/chatgpt490_bot?start=verified"  # Direct link to verification start
         )],
         [InlineKeyboardButton(
             "How to open captcha🔗",  # New button (not a web app)
-            url= f"https://t.me/disneysworl_d/5" # Will trigger a callback
+            url="https://t.me/disneysworl_d/5"  # Will trigger a callback
         )]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -119,9 +116,7 @@ async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         [InlineKeyboardButton("Developer AI🧐", callback_data='developer'), InlineKeyboardButton("Zenith AI😑", callback_data='zenith')],
         [InlineKeyboardButton("Bing AI🤩", callback_data='bing'), InlineKeyboardButton("Meta AI😤", callback_data='meta')],
         [InlineKeyboardButton("Blackbox AI🤠", callback_data='blackbox'), InlineKeyboardButton("Qwen AI😋", callback_data='qwen')],
-        [InlineKeyboardButton("Gemini AI🤨", callback_data='gemini'), InlineKeyboardButton("Horny AI💋", callback_data='horny')],
-        [InlineKeyboardButton("Cute Girlfriend AI🧚‍♀️", callback_data='cute_girlfriend'), InlineKeyboardButton("Bestie AI🫂", callback_data='bestie')],
-        [InlineKeyboardButton("Dark AI🌑", callback_data='dark'), InlineKeyboardButton("Default(ChatGPT-3🤡)", callback_data='reset')]
+        [InlineKeyboardButton("Gemini AI🤨", callback_data='gemini'), InlineKeyboardButton("Horny AI😍", callback_data='horny'), InlineKeyboardButton("Default(ChatGPT-3🤡)", callback_data='reset')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     message = await update.message.reply_text(
@@ -139,73 +134,64 @@ async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    await query.answer()  # Acknowledge the callback query
+    data = query.data
 
-    user_id = str(update.effective_user.id)
-    user_data = verification_collection.find_one({'user_id': user_id})
+    if data in API_URLS:
+        context.user_data['selected_ai'] = data
+        await query.answer()
+        await query.edit_message_text(text=f'ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴄʜᴀᴛᴛɪɴɢ ᴡɪᴛʜ {data.capitalize()}_ᴀɪ.\n\nᴛᴏ ᴄʜᴀɴɢᴇ ᴀɪ ᴜsᴇ /start ᴄᴏᴍᴍᴀɴᴅ')
+    elif data == 'reset':
+        context.user_data['selected_ai'] = DEFAULT_AI
+        await query.answer()
+        await query.edit_message_text(text='You are now reset to ChatGPT.')
 
-    if user_data:
-        last_verified = user_data.get('last_verified')
-        current_time = datetime.now()
-
-        # Check verification status
-        if last_verified and current_time - last_verified < VERIFICATION_INTERVAL:
-            await query.edit_message_text(text="You are already verified! Select an AI to chat with:")
-        else:
-            await send_verification_message(update, context)
-            return
-    else:
-        await send_verification_message(update, context)
-        return
-
-    selected_ai = query.data
-    user_message = "Hello, how can I help you today?"
-
-    # Get the AI response
-    ai_response, image_url = await get_ai_response(selected_ai, user_message)
-
-    if image_url:
-        await context.bot.send_photo(chat_id=update.effective_chat.id, photo=image_url, caption=ai_response)
-    else:
-        await query.edit_message_text(text=ai_response)
-
-    # Schedule auto-delete of the message
-    message = await context.bot.send_message(chat_id=update.effective_chat.id, text="This message will self-destruct in 30 seconds.")
-    scheduler.add_job(
-        lambda: context.bot.delete_message(chat_id=update.effective_chat.id, message_id=message.message_id),
-        trigger='date',
-        run_date=datetime.now() + timedelta(minutes=0.5)  # 30 seconds
-    )
-
-async def get_ai_response(selected_ai: str, user_message: str) -> (str, str):
-    api_url = API_URLS.get(selected_ai, API_URLS[DEFAULT_AI])
-    response = requests.get(api_url.format(user_message)).json()
-    
-    if response.get("status"):
-        image_url = response.get("image_url")  # Assuming the image URL is under this key
-        return response["gpt"], image_url
-    else:
-        return "Sorry, I couldn't fetch the response from the AI.", None
-
-async def is_user_member_of_channel(context, user_id):
-    try:
-        member = await context.bot.get_chat_member(REQUIRED_CHANNEL, user_id)
-        return member.status in ["member", "administrator", "creator"]
-    except Exception as e:
-        logger.error(f"Error checking membership: {e}")
-        return False
-
-async def handle_verification_redirect(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
-    verification_collection.update_one(
-        {'user_id': user_id},
-        {'$set': {'last_verified': datetime.now()}},
-        upsert=True
-    )
-    await update.message.reply_text("You have been verified! Now you can use the bot.")
-    await send_start_message(update, context)
+    current_time = datetime.now()
 
-def main():
+    # Check if the user is verified
+    user_data = verification_collection.find_one({'user_id': user_id})
+    last_verified = user_data.get('last_verified') if user_data else None
+    if last_verified and current_time - last_verified < VERIFICATION_INTERVAL:
+        user_message = update.message.text
+        selected_ai = context.user_data.get('selected_ai', DEFAULT_AI)
+        api_url = API_URLS.get(selected_ai, API_URLS[DEFAULT_AI])
+        
+        try:
+            response = requests.get(api_url.format(user_message))
+            response_data = response.json()
+
+            # Check if the response format is from the new AI APIs
+            if 'gpt' in response_data:  # Assuming 'gpt' for the response text
+                answer = response_data.get("gpt", "Sorry, I couldn't understand that.")
+            else:
+                answer = response_data.get("answer", "Sorry, I couldn't understand that.")
+                
+            await update.message.reply_text(answer)
+            
+            # Check for image URL in the response for the Horny AI
+            if 'image' in response_data:
+                image_url = response_data.get("image", None)
+                if image_url:
+                    await update.message.reply_photo(photo=image_url)
+
+            # Log the message and response to the log channel
+            await context.bot.send_message(
+                chat_id=LOG_CHANNEL,
+                text=f"User: {update.message.from_user.username}\nMessage: {user_message}\nResponse: {answer}"
+            )
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error: {e}")
+            await update.message.reply_text("There was an error retrieving the response. Please try again later.")
+        except ValueError as e:
+            logger.error(f"JSON decoding error: {e}")
+            await update.message.reply_text("Error parsing the response from the API. Please try again later.")
+    else:
+        # User needs to verify again
+        await send_verification_message(update, context)
+
+async def main():
     # Create the application with the provided bot token
     application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
 
