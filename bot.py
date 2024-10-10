@@ -10,7 +10,6 @@ from telegram.ext import (
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import asyncio
 
 # Set up logging
 logging.basicConfig(
@@ -22,7 +21,9 @@ logger = logging.getLogger(__name__)
 # API URLs for different AIs
 API_URLS = {
     'chatgpt': "https://chatgpt.darkhacker7301.workers.dev/?question={}",
-    'girlfriend': "https://chatgpt.darkhacker7301.workers.dev/?question={}&state=girlfriend",
+    'horny_girlfriend': "https://evil.darkhacker7301.workers.dev/?question={{}}&model=horny",
+    'hot_girlfriend': "https://evil.darkhacker7301.workers.dev/?question={{}}&model=gf",
+    'cute_girlfriend': "https://evil.darkhacker7301.workers.dev/?question={{}}&model=girlfriend",
     'jarvis': "https://jarvis.darkhacker7301.workers.dev/?question={}&state=jarvis",
     'zenith': "https://ashlynn.darkhacker7301.workers.dev/?question={}&state=Zenith",
     'evil': "https://white-evilgpt.ashlynn.workers.dev/?username=Yourtgusername&question={}",
@@ -34,8 +35,7 @@ API_URLS = {
     'meta': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Llama",
     'blackbox': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Blackbox",
     'qwen': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Qwen",
-    'gemini': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Gemini",
-    'horny': "https://evil.darkhacker7301.workers.dev/?question={}&model=horny"  # Horny AI API
+    'gemini': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Gemini"
 }
 
 # Default AI
@@ -95,12 +95,12 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
 
     keyboard = [
         [InlineKeyboardButton(
-            "I'm not a robot👨‍💼",
-            url= f"https://api.shareus.io/direct_link?api_key=MENeVZcapqUmOXw9fyRSQm9Z6pu2&pages=3&link=https://t.me/chatgpt490_bot?start=verified" 
+            "I'm not a robot👨‍💼",  # New button (not a web app)
+            url= f"https://api.shareus.io/direct_link?api_key=MENeVZcapqUmOXw9fyRSQm9Z6pu2&pages=3&link=https://t.me/chatgpt490_bot?start=verified"  # Direct link to verification start
         )],
         [InlineKeyboardButton(
-            "How to open captcha🔗",  
-            url= f"https://t.me/disneysworl_d/5" 
+            "How to open captcha🔗",  # New button (not a web app)
+            url= f"https://t.me/disneysworl_d/5" # Will trigger a callback
         )]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -111,14 +111,13 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
 
 async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("ChatGPT-4👑", callback_data='gpt4'), InlineKeyboardButton("Jarvis AI🥳", callback_data='jarvis')],
-        [InlineKeyboardButton("❤GirlFriend AI🥰", callback_data='girlfriend'), InlineKeyboardButton("Evil AI😡", callback_data='evil')],
-        [InlineKeyboardButton("Horny AI💖", callback_data='horny'), InlineKeyboardButton("LordAI🤗", callback_data='lord')],
-        [InlineKeyboardButton("Business AI🤑", callback_data='business'), InlineKeyboardButton("Developer AI🧐", callback_data='developer')],
-        [InlineKeyboardButton("Zenith AI😑", callback_data='zenith'), InlineKeyboardButton("Bing AI🤩", callback_data='bing')],
-        [InlineKeyboardButton("Meta AI😤", callback_data='meta'), InlineKeyboardButton("Blackbox AI🤠", callback_data='blackbox')],
-        [InlineKeyboardButton("Qwen AI😋", callback_data='qwen'), InlineKeyboardButton("Gemini AI🤨", callback_data='gemini')],
-        [InlineKeyboardButton("Default(ChatGPT-3🤡)", callback_data='reset')]
+        [InlineKeyboardButton("ChatGPT-4👑", callback_data='gpt4'), InlineKeyboardButton("Horny Girlfriend AI😈", callback_data='horny_girlfriend')],
+        [InlineKeyboardButton("Hot Girlfriend AI😍", callback_data='hot_girlfriend'), InlineKeyboardButton("Cute Girlfriend AI🥰", callback_data='cute_girlfriend')],
+        [InlineKeyboardButton("LordAI🤗", callback_data='lord'), InlineKeyboardButton("Business AI🤑", callback_data='business')],
+        [InlineKeyboardButton("Developer AI🧐", callback_data='developer'), InlineKeyboardButton("Zenith AI😑", callback_data='zenith')],
+        [InlineKeyboardButton("Bing AI🤩", callback_data='bing'), InlineKeyboardButton("Meta AI😤", callback_data='meta')],
+        [InlineKeyboardButton("Blackbox AI🤠", callback_data='blackbox'), InlineKeyboardButton("Qwen AI😋", callback_data='qwen')],
+        [InlineKeyboardButton("Gemini AI🤨", callback_data='gemini'), InlineKeyboardButton("Default(ChatGPT-3🤡)", callback_data='reset')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     message = await update.message.reply_text(
@@ -139,91 +138,57 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     data = query.data
 
     if data in API_URLS:
-        context.user_data['selected_ai'] = data
-        await query.answer()
-        await query.edit_message_text(text=f'ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴄʜᴀᴛᴛɪɴɢ ᴡɪᴛʜ {data.capitalize()} AI.\n\nᴛᴏ ᴄʜᴀɴɢᴇ ᴀɪ, ᴄʟɪᴄᴋ ʙᴇʟᴏᴡ:')
-        await send_start_message(update, context)
-
-    # If user selected the "Horny" AI
-    if data == 'horny':
-        # Log the user's selection
-        await log_selection(update, data)
-
-        # Send a special response for Horny AI
-        response = await get_ai_response("horny", "What's your question?")
-        await query.edit_message_text(text=response)
-
-async def get_ai_response(ai_model: str, user_input: str) -> str:
-    """
-    Get response from the selected AI model.
-    """
-    try:
-        api_url = API_URLS[ai_model]
-        response = requests.get(api_url.format(user_input))
-        response_data = response.json()
-        return response_data.get('answer', 'Sorry, I did not understand that.')
-    except Exception as e:
-        logger.error(f"Error fetching response from {ai_model}: {e}")
-        return 'There was an error processing your request.'
-
-async def log_selection(update: Update, selected_ai: str) -> None:
-    """
-    Log the selected AI and user information to a specific channel.
-    """
-    user_info = update.effective_user
-    message = (
-        f"User: {user_info.full_name} (@{user_info.username})\n"
-        f"User ID: {user_info.id}\n"
-        f"Selected AI: {selected_ai}\n"
-        f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    context.user_data['selected_ai'] = data
+    await query.answer()
+    await query.edit_message_text(
+        text=f'ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴄʜᴀᴛᴛɪɴɢ ᴡɪᴛʜ {data.replace("_", " ").capitalize()}_ᴀɪ.\n\n'
+             'ᴛᴏ ᴄʜᴀɴɢᴇ ᴀɪ ᴜsᴇ /start ᴄᴏᴍᴍᴀɴᴅ'
     )
-    await context.bot.send_message(chat_id=LOG_CHANNEL, text=message)
+elif data == 'reset':
+    context.user_data.pop('selected_ai', None)
+    await query.answer()
+    await query.edit_message_text(
+        text='ᴡʜᴀᴛ ᴀɪ ᴡᴏᴜʟᴅ ʏᴏᴜ ʟɪᴋᴇ ᴛᴏ ᴄʜᴀᴛ ᴡɪᴛʜ?'
+    )
+else:
+    await query.answer()
+    await query.edit_message_text(
+        text='ᴀɪ ɴᴏᴛ ғᴏᴜɴᴅ. ᴘʟᴇᴀsᴇ ᴄʜᴏsᴇ ᴀᴠᴀɪʟᴀʙʟᴇ ᴏᴘᴛɪᴏɴs.'
+    )
 
-async def is_user_member_of_channel(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
-    """
-    Check if the user is a member of the required channel.
-    """
-    try:
-        member = await context.bot.get_chat_member(chat_id=REQUIRED_CHANNEL, user_id=user_id)
-        return member.status in ['member', 'administrator', 'creator']
-    except Exception as e:
-        logger.error(f"Error checking channel membership: {e}")
-        return False
-
-async def handle_verification_redirect(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    Handle the verification redirect.
-    """
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
-    current_time = datetime.now()
+    user_data = context.user_data
+    selected_ai = user_data.get('selected_ai', DEFAULT_AI)
+    
+    # Make the API request to the selected AI
+    api_url = API_URLS[selected_ai]
+    question = update.message.text
+    response = requests.get(api_url.format(question))
 
-    # Update verification status in the database
-    verification_collection.update_one(
-        {'user_id': user_id},
-        {'$set': {'last_verified': current_time}},
-        upsert=True
-    )
+    if response.status_code == 200:
+        answer = response.json().get('answer', 'Sorry, I did not get that.')
+        await update.message.reply_text(answer)
+    else:
+        await update.message.reply_text('Error connecting to the AI service.')
 
-    await send_start_message(update, context)
+def main():
+    # Initialize the application with your bot token
+    application = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
 
-async def main() -> None:
-    """
-    Main function to start the bot.
-    """
-    application = ApplicationBuilder().token(os.getenv('TELEGRAM_TOKEN')).build()
-
-    # Add handlers
+    # Handlers
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'.*verified.*'), handle_verification_redirect))
     application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Start the webhook
-    await application.run_webhook(listen='0.0.0.0',
-                                   port=int(os.environ.get('PORT', 8443)),
-                                   url_path=os.getenv('TELEGRAM_TOKEN'),
-                                   webhook_url=os.getenv('WEBHOOK_URL') + os.getenv('TELEGRAM_TOKEN'))
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.getenv("PORT", "8443")),
+        url_path=os.getenv("TELEGRAM_BOT_TOKEN")
+    )
+    application.bot.setWebhook(os.getenv("WEBHOOK_URL") + "/" + os.getenv("TELEGRAM_BOT_TOKEN"))
 
-if __name__ == '__main__':
-    # Get the current running loop
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+if __name__ == "__main__":
+    main()
+
