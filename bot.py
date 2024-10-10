@@ -10,6 +10,7 @@ from telegram.ext import (
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import asyncio
 
 # Set up logging
 logging.basicConfig(
@@ -94,12 +95,12 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
 
     keyboard = [
         [InlineKeyboardButton(
-            "I'm not a robot👨‍💼",  # New button (not a web app)
-            url=f"https://api.shareus.io/direct_link?api_key=MENeVZcapqUmOXw9fyRSQm9Z6pu2&pages=3&link=https://t.me/chatgpt490_bot?start=verified"  # Direct link to verification start
+            "I'm not a robot👨‍💼",
+            url= f"https://api.shareus.io/direct_link?api_key=MENeVZcapqUmOXw9fyRSQm9Z6pu2&pages=3&link=https://t.me/chatgpt490_bot?start=verified" 
         )],
         [InlineKeyboardButton(
-            "How to open captcha🔗",  # New button (not a web app)
-            url="https://t.me/disneysworl_d/5"  # Will trigger a callback
+            "How to open captcha🔗",  
+            url= f"https://t.me/disneysworl_d/5" 
         )]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -112,11 +113,12 @@ async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
     keyboard = [
         [InlineKeyboardButton("ChatGPT-4👑", callback_data='gpt4'), InlineKeyboardButton("Jarvis AI🥳", callback_data='jarvis')],
         [InlineKeyboardButton("❤GirlFriend AI🥰", callback_data='girlfriend'), InlineKeyboardButton("Evil AI😡", callback_data='evil')],
-        [InlineKeyboardButton("LordAI🤗", callback_data='lord'), InlineKeyboardButton("Business AI🤑", callback_data='business')],
-        [InlineKeyboardButton("Developer AI🧐", callback_data='developer'), InlineKeyboardButton("Zenith AI😑", callback_data='zenith')],
-        [InlineKeyboardButton("Bing AI🤩", callback_data='bing'), InlineKeyboardButton("Meta AI😤", callback_data='meta')],
-        [InlineKeyboardButton("Blackbox AI🤠", callback_data='blackbox'), InlineKeyboardButton("Qwen AI😋", callback_data='qwen')],
-        [InlineKeyboardButton("Gemini AI🤨", callback_data='gemini'), InlineKeyboardButton("Horny AI😍", callback_data='horny'), InlineKeyboardButton("Default(ChatGPT-3🤡)", callback_data='reset')]
+        [InlineKeyboardButton("Horny AI💖", callback_data='horny'), InlineKeyboardButton("LordAI🤗", callback_data='lord')],
+        [InlineKeyboardButton("Business AI🤑", callback_data='business'), InlineKeyboardButton("Developer AI🧐", callback_data='developer')],
+        [InlineKeyboardButton("Zenith AI😑", callback_data='zenith'), InlineKeyboardButton("Bing AI🤩", callback_data='bing')],
+        [InlineKeyboardButton("Meta AI😤", callback_data='meta'), InlineKeyboardButton("Blackbox AI🤠", callback_data='blackbox')],
+        [InlineKeyboardButton("Qwen AI😋", callback_data='qwen'), InlineKeyboardButton("Gemini AI🤨", callback_data='gemini')],
+        [InlineKeyboardButton("Default(ChatGPT-3🤡)", callback_data='reset')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     message = await update.message.reply_text(
@@ -139,101 +141,87 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if data in API_URLS:
         context.user_data['selected_ai'] = data
         await query.answer()
-        await query.edit_message_text(text=f'ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴄʜᴀᴛᴛɪɴɢ ᴡɪᴛʜ {data.capitalize()}_ᴀɪ.\n\nᴛᴏ ᴄʜᴀɴɢᴇ ᴀɪ ᴜsᴇ /start ᴄᴏᴍᴍᴀɴᴅ')
-    elif data == 'reset':
-        context.user_data['selected_ai'] = DEFAULT_AI
-        await query.answer()
-        await query.edit_message_text(text='You are now reset to ChatGPT.')
+        await query.edit_message_text(text=f'ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴄʜᴀᴛᴛɪɴɢ ᴡɪᴛʜ {data.capitalize()} AI.\n\nᴛᴏ ᴄʜᴀɴɢᴇ ᴀɪ, ᴄʟɪᴄᴋ ʙᴇʟᴏᴡ:')
+        await send_start_message(update, context)
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = str(update.message.from_user.id)
-    current_time = datetime.now()
+    # If user selected the "Horny" AI
+    if data == 'horny':
+        # Log the user's selection
+        await log_selection(update, data)
 
-    # Check if the user is verified
-    user_data = verification_collection.find_one({'user_id': user_id})
-    last_verified = user_data.get('last_verified') if user_data else None
-    if last_verified and current_time - last_verified < VERIFICATION_INTERVAL:
-        user_message = update.message.text
-        selected_ai = context.user_data.get('selected_ai', DEFAULT_AI)
-        api_url = API_URLS.get(selected_ai, API_URLS[DEFAULT_AI])
-        
-        try:
-            response = requests.get(api_url.format(user_message))
-            response_data = response.json()
+        # Send a special response for Horny AI
+        response = await get_ai_response("horny", "What's your question?")
+        await query.edit_message_text(text=response)
 
-            # Check if the response format is from the new AI APIs
-            if 'gpt' in response_data:  # Assuming 'gpt' for the response text
-                answer = response_data.get("gpt", "Sorry, I couldn't understand that.")
-            else:
-                answer = response_data.get("answer", "Sorry, I couldn't understand that.")
-                
-            await update.message.reply_text(answer)
-            
-            # Check for image URL in the response for the Horny AI
-            if 'image' in response_data:
-                image_url = response_data.get("image", None)
-                if image_url:
-                    await update.message.reply_photo(photo=image_url)
+async def get_ai_response(ai_model: str, user_input: str) -> str:
+    """
+    Get response from the selected AI model.
+    """
+    try:
+        api_url = API_URLS[ai_model]
+        response = requests.get(api_url.format(user_input))
+        response_data = response.json()
+        return response_data.get('answer', 'Sorry, I did not understand that.')
+    except Exception as e:
+        logger.error(f"Error fetching response from {ai_model}: {e}")
+        return 'There was an error processing your request.'
 
-            # Log the message and response to the log channel
-            await context.bot.send_message(
-                chat_id=LOG_CHANNEL,
-                text=f"User: {update.message.from_user.username}\nMessage: {user_message}\nResponse: {answer}"
-            )
+async def log_selection(update: Update, selected_ai: str) -> None:
+    """
+    Log the selected AI and user information to a specific channel.
+    """
+    user_info = update.effective_user
+    message = (
+        f"User: {user_info.full_name} (@{user_info.username})\n"
+        f"User ID: {user_info.id}\n"
+        f"Selected AI: {selected_ai}\n"
+        f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+    await context.bot.send_message(chat_id=LOG_CHANNEL, text=message)
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Request error: {e}")
-            await update.message.reply_text("There was an error retrieving the response. Please try again later.")
-        except ValueError as e:
-            logger.error(f"JSON decoding error: {e}")
-            await update.message.reply_text("Error parsing the response from the API. Please try again later.")
-    else:
-        # User needs to verify again
-        await send_verification_message(update, context)
-
-# ... other imports ...
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes
-
-# Your other function definitions...
+async def is_user_member_of_channel(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
+    """
+    Check if the user is a member of the required channel.
+    """
+    try:
+        member = await context.bot.get_chat_member(chat_id=REQUIRED_CHANNEL, user_id=user_id)
+        return member.status in ['member', 'administrator', 'creator']
+    except Exception as e:
+        logger.error(f"Error checking channel membership: {e}")
+        return False
 
 async def handle_verification_redirect(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle the verification redirect.
+    """
     user_id = str(update.message.from_user.id)
     current_time = datetime.now()
 
-    # Update user verification status
+    # Update verification status in the database
     verification_collection.update_one(
         {'user_id': user_id},
         {'$set': {'last_verified': current_time}},
         upsert=True
     )
-    await update.message.reply_text('ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴠᴇʀғɪᴇᴅ!🥰')
-    await send_start_message(update, context)  # Directly send the start message after verification
 
-# Other function definitions...
-async def main():
-    # Create the application with the provided bot token
-    application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
+    await send_start_message(update, context)
 
-    # Add command handlers
+async def main() -> None:
+    """
+    Main function to start the bot.
+    """
+    application = ApplicationBuilder().token(os.getenv('TELEGRAM_TOKEN')).build()
+
+    # Add handlers
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'.*verified.*'), handle_verification_redirect))
     application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'.*verified.*'), handle_verification_redirect))  # This should work now
-    application.add_handler(CommandHandler("broadcast", broadcast, filters=filters.User(username=ADMINS)))
-    application.add_handler(CommandHandler("stats", stats, filters=filters.User(username=ADMINS)))
 
-    # Add error handler
-    application.add_error_handler(error)
-
-    # Start the webhook to listen for updates
-    PORT = int(os.environ.get("PORT", 8443))
-    WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Make sure to set this environment variable in your Render settings
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        url_path=os.getenv("TELEGRAM_TOKEN"),
-        webhook_url=f"{WEBHOOK_URL}/{os.getenv('TELEGRAM_TOKEN')}"
-    )
+    # Start the webhook
+    await application.run_webhook(listen='0.0.0.0',
+                                   port=int(os.environ.get('PORT', 8443)),
+                                   url_path=os.getenv('TELEGRAM_TOKEN'),
+                                   webhook_url=os.getenv('WEBHOOK_URL') + os.getenv('TELEGRAM_TOKEN'))
 
 if __name__ == '__main__':
     asyncio.run(main())
