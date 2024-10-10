@@ -224,4 +224,6 @@ async def main() -> None:
                                    webhook_url=os.getenv('WEBHOOK_URL') + os.getenv('TELEGRAM_TOKEN'))
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    # Get the current running loop
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
