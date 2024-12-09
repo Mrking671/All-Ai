@@ -9,6 +9,7 @@ from telegram.ext import (
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import asyncio  # Added import for asyncio
 
 # Set up logging
 logging.basicConfig(
