@@ -179,7 +179,8 @@ def main() -> None:
     application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
 
     # Start scheduler within event loop
-    scheduler.configure(event_loop=application.updater.asyncio_event_loop)
+    loop = asyncio.get_event_loop()
+    scheduler.configure(event_loop=loop)
     scheduler.start()
 
     # Add handlers for commands and messages
