@@ -1,7 +1,6 @@
 import os
 import logging
 import requests
-import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
@@ -18,34 +17,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# API URLs for different AIs
-API_URLS = {
-    'chatgpt': "https://chatgpt.darkhacker7301.workers.dev/?question={}",
-    'horny_girlfriend': "https://evil.darkhacker7301.workers.dev/?question={{}}&model=horny",
-    'hot_girlfriend': "https://evil.darkhacker7301.workers.dev/?question={{}}&model=gf",
-    'cute_girlfriend': "https://evil.darkhacker7301.workers.dev/?question={{}}&model=girlfriend",
-    'jarvis': "https://jarvis.darkhacker7301.workers.dev/?question={}&state=jarvis",
-    'zenith': "https://ashlynn.darkhacker7301.workers.dev/?question={}&state=Zenith",
-    'evil': "https://white-evilgpt.ashlynn.workers.dev/?username=Yourtgusername&question={}",
-    'lord': "https://lord.ashlynn.workers.dev/?question={}&state=Poet",
-    'business': "https://bjs-tbc.ashlynn.workers.dev/?username=YourTGI'dhere&question={}",
-    'developer': "https://bb-ai.ashlynn.workers.dev/?question={}&state=helper",
-    'gpt4': "https://telesevapi.vercel.app/chat-gpt?question={}",
-    'bing': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Bing",
-    'meta': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Llama",
-    'blackbox': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Blackbox",
-    'qwen': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Qwen",
-    'gemini': "https://lord-apis.ashlynn.workers.dev/?question={}&mode=Gemini"
-}
-
-# Default AI
-DEFAULT_AI = 'chatgpt'
+# New API URL (Default AI)
+API_URL = "https://BJ-Devs.serv00.net/gpt4-o.php?text={}"
 
 # Verification settings
 VERIFICATION_INTERVAL = timedelta(hours=12)  # 12 hours for re-verification
 
 # Channel that users need to join to use the bot
-REQUIRED_CHANNEL = "@chatgpt4for_free"  # Replace with your channel
+REQUIRED_CHANNEL = "@public_bots"  # Replace with your channel
 
 # Channel where logs will be sent
 LOG_CHANNEL = "@chatgptlogs"  # Replace with your log channel
@@ -64,16 +43,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
     current_time = datetime.now()
 
-    # Check if the user has joined the required channel
     if not await is_user_member_of_channel(context, update.effective_user.id):
         await send_join_channel_message(update, context)
         return
 
-    # Check if the message contains 'verified' indicating a successful verification
     if 'verified' in context.args:
         await handle_verification_redirect(update, context)
     else:
-        # Regular start command logic
         user_data = verification_collection.find_one({'user_id': user_id})
         last_verified = user_data.get('last_verified') if user_data else None
         if last_verified and current_time - last_verified < VERIFICATION_INTERVAL:
@@ -82,7 +58,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await send_verification_message(update, context)
 
 async def send_join_channel_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [[InlineKeyboardButton("Join Channel", url=f"https://t.me/{REQUIRED_CHANNEL[1:]}")]]
+    keyboard = [[InlineKeyboardButton("Join Channel", url=f"https://t.me/public_botz")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
         'To use this bot, you need to join our updates channel first.',
@@ -90,17 +66,15 @@ async def send_join_channel_message(update: Update, context: ContextTypes.DEFAUL
     )
 
 async def send_verification_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    bot_username = context.bot.username  # Get the bot's username dynamically
-    verification_link = f"https://t.me/{bot_username}?start=verified"
-
+    verification_link = f"https://api.shareus.io/direct_link?api_key=H8bZ2XFrpWeWYfhpHkdKAakwlIS2&pages=3&link=https://t.me/{context.bot.username}?start=verified"
     keyboard = [
         [InlineKeyboardButton(
-            "I'm not a robot👨‍💼",  # New button (not a web app)
-            url= f"https://api.shareus.io/direct_link?api_key=MENeVZcapqUmOXw9fyRSQm9Z6pu2&pages=3&link=https://t.me/chatgpt490_bot?start=verified"  # Direct link to verification start
+            "I'm not a robot👨‍💼",
+            url=f"https://api.shareus.io/direct_link?api_key=H8bZ2XFrpWeWYfhpHkdKAakwlIS2&pages=3&link=https://t.me/{context.bot.username}?start=verified"
         )],
         [InlineKeyboardButton(
-            "How to open captcha🔗",  # New button (not a web app)
-            url= f"https://t.me/disneysworl_d/5" # Will trigger a callback
+            "How to open captcha🔗",
+            url="https://t.me/disneysworl_d/5"
         )]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -110,85 +84,74 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
     )
 
 async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [
-        [InlineKeyboardButton("ChatGPT-4👑", callback_data='gpt4'), InlineKeyboardButton("Horny Girlfriend AI😈", callback_data='horny_girlfriend')],
-        [InlineKeyboardButton("Hot Girlfriend AI😍", callback_data='hot_girlfriend'), InlineKeyboardButton("Cute Girlfriend AI🥰", callback_data='cute_girlfriend')],
-        [InlineKeyboardButton("LordAI🤗", callback_data='lord'), InlineKeyboardButton("Business AI🤑", callback_data='business')],
-        [InlineKeyboardButton("Developer AI🧐", callback_data='developer'), InlineKeyboardButton("Zenith AI😑", callback_data='zenith')],
-        [InlineKeyboardButton("Bing AI🤩", callback_data='bing'), InlineKeyboardButton("Meta AI😤", callback_data='meta')],
-        [InlineKeyboardButton("Blackbox AI🤠", callback_data='blackbox'), InlineKeyboardButton("Qwen AI😋", callback_data='qwen')],
-        [InlineKeyboardButton("Gemini AI🤨", callback_data='gemini'), InlineKeyboardButton("Default(ChatGPT-3🤡)", callback_data='reset')]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = await update.message.reply_text(
-        'ᴡᴇʟᴄᴏᴍᴇ👊 ᴄʜᴏᴏsᴇ ᴀɪ ғʀᴏᴍ ʙᴇʟᴏᴡ ʟɪsᴛ👇\n'
-        'ᴅᴇғᴀᴜʟᴛ ɪs ᴄʜᴀᴛɢᴘᴛ-𝟹',
-        reply_markup=reply_markup
-    )
-
-    # Schedule auto-delete of the message
-    scheduler.add_job(
-        lambda: context.bot.delete_message(chat_id=update.effective_chat.id, message_id=message.message_id),
-        trigger='date',
-        run_date=datetime.now() + timedelta(minutes=30)
-    )
-
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    data = query.data
-
-    if data in API_URLS:
-    context.user_data['selected_ai'] = data
-    await query.answer()
-    await query.edit_message_text(
-        text=f'ʏᴏᴜ ᴀʀᴇ ɴᴏᴡ ᴄʜᴀᴛᴛɪɴɢ ᴡɪᴛʜ {data.replace("_", " ").capitalize()}_ᴀɪ.\n\n'
-             'ᴛᴏ ᴄʜᴀɴɢᴇ ᴀɪ ᴜsᴇ /start ᴄᴏᴍᴍᴀɴᴅ'
-    )
-elif data == 'reset':
-    context.user_data.pop('selected_ai', None)
-    await query.answer()
-    await query.edit_message_text(
-        text='ᴡʜᴀᴛ ᴀɪ ᴡᴏᴜʟᴅ ʏᴏᴜ ʟɪᴋᴇ ᴛᴏ ᴄʜᴀᴛ ᴡɪᴛʜ?'
-    )
-else:
-    await query.answer()
-    await query.edit_message_text(
-        text='ᴀɪ ɴᴏᴛ ғᴏᴜɴᴅ. ᴘʟᴇᴀsᴇ ᴄʜᴏsᴇ ᴀᴠᴀɪʟᴀʙʟᴇ ᴏᴘᴛɪᴏɴs.'
+    await update.message.reply_text(
+        'Welcome👊 Start sending your queries, and I will reply!'
     )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
-    user_data = context.user_data
-    selected_ai = user_data.get('selected_ai', DEFAULT_AI)
-    
-    # Make the API request to the selected AI
-    api_url = API_URLS[selected_ai]
-    question = update.message.text
-    response = requests.get(api_url.format(question))
+    current_time = datetime.now()
 
-    if response.status_code == 200:
-        answer = response.json().get('answer', 'Sorry, I did not get that.')
-        await update.message.reply_text(answer)
+    user_data = verification_collection.find_one({'user_id': user_id})
+    last_verified = user_data.get('last_verified') if user_data else None
+    if last_verified and current_time - last_verified < VERIFICATION_INTERVAL:
+        user_message = update.message.text
+        try:
+            response = requests.get(API_URL.format(user_message))
+            response_data = response.json()
+
+            reply = response_data.get("reply", "Sorry, no response was received.")
+            if any(keyword in reply for keyword in ["def ", "import ", "{", "}", "=", "<", ">"]):
+                reply = f"```\n{reply}\n```"
+
+            await update.message.reply_text(reply, parse_mode="Markdown")
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error: {e}")
+            await update.message.reply_text("There was an error retrieving the response. Please try again later.")
+        except ValueError as e:
+            logger.error(f"JSON decoding error: {e}")
+            await update.message.reply_text("Error parsing the response from the API. Please try again later.")
     else:
-        await update.message.reply_text('Error connecting to the AI service.')
+        await send_verification_message(update, context)
 
-def main():
-    # Initialize the application with your bot token
-    application = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
+async def handle_verification_redirect(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.message.from_user.id)
+    current_time = datetime.now()
 
-    # Handlers
+    verification_collection.update_one(
+        {'user_id': user_id},
+        {'$set': {'last_verified': current_time}},
+        upsert=True
+    )
+
+    await context.bot.send_message(
+        chat_id=LOG_CHANNEL,
+        text=f"User verified: {update.message.from_user.username} (ID: {update.message.from_user.id})"
+    )
+    await send_start_message(update, context)
+
+async def is_user_member_of_channel(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
+    try:
+        member = await context.bot.get_chat_member(REQUIRED_CHANNEL, user_id)
+        return member.status in ["member", "administrator", "creator"]
+    except Exception as e:
+        logger.error(f"Error checking membership: {e}")
+        return False
+
+def main() -> None:
+    application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
+
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # Start the webhook
+    webhook_url = os.getenv("WEBHOOK_URL")
     application.run_webhook(
         listen="0.0.0.0",
         port=int(os.getenv("PORT", "8443")),
-        url_path=os.getenv("TELEGRAM_BOT_TOKEN")
+        url_path=os.getenv("TELEGRAM_TOKEN"),
+        webhook_url=f"{webhook_url}/{os.getenv('TELEGRAM_TOKEN')}"
     )
-    application.bot.setWebhook(os.getenv("WEBHOOK_URL") + "/" + os.getenv("TELEGRAM_BOT_TOKEN"))
 
 if __name__ == "__main__":
     main()
-
