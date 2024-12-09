@@ -4,12 +4,11 @@ import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
-    filters, ContextTypes
+    filters, CallbackQueryHandler, ContextTypes
 )
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import asyncio  # Added import for asyncio
 
 # Set up logging
 logging.basicConfig(
@@ -25,7 +24,7 @@ API_URL = "https://BJ-Devs.serv00.net/gpt4-o.php?text={}"
 VERIFICATION_INTERVAL = timedelta(hours=12)  # 12 hours for re-verification
 
 # Channel that users need to join to use the bot
-REQUIRED_CHANNEL = "https://t.me/public_botz"  # Replace with your channel
+REQUIRED_CHANNEL = "@public_botz"  # Replace with your channel
 
 # Channel where logs will be sent
 LOG_CHANNEL = "@chatgptlogs"  # Replace with your log channel
@@ -61,45 +60,44 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         else:
             await send_verification_message(update, context)
 
-
 async def send_join_channel_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [[InlineKeyboardButton("Join Channel", url=f"https://t.me/public_botz")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    message = await update.message.reply_text(
+    await update.message.reply_text(
         'To use this bot, you need to join our updates channel first.',
         reply_markup=reply_markup
     )
-    # Auto-delete after 5 minutes
-    schedule_message_deletion(context, message.chat_id, message.message_id)
-
 
 async def send_verification_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    verification_link = f"https://t.me/{context.bot.username}?start=verified"
     keyboard = [
         [InlineKeyboardButton(
-            "I'm not a robot👨‍💼",
+            "I'm not a robot👨‍💼",  # New button (not a web app)
             url=f"https://api.shareus.io/direct_link?api_key=H8bZ2XFrpWeWYfhpHkdKAakwlIS2&pages=3&link=https://t.me/{context.bot.username}?start=verified"
         )],
         [InlineKeyboardButton(
-            "How to open captcha🔗",
+            "How to open captcha🔗",  # New button (not a web app)
             url="https://t.me/disneysworl_d/5"
         )]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    message = await update.message.reply_text(
+    await update.message.reply_text(
         '♂️ 🅲🅰🅿🆃🅲🅷🅰 ♂️\n\nᴘʟᴇᴀsᴇ ᴠᴇʀɪғʏ ᴛʜᴀᴛ ʏᴏᴜ ᴀʀᴇ ʜᴜᴍᴀɴ 👨‍💼\nᴛᴏ ᴘʀᴇᴠᴇɴᴛ ᴀʙᴜsᴇ ᴡᴇ ᴇɴᴀʙʟᴇᴅ ᴛʜɪs ᴄᴀᴘᴛᴄʜᴀ\n𝗖𝗟𝗜𝗖𝗞 𝗛𝗘𝗥𝗘👇',
         reply_markup=reply_markup
     )
-    # Auto-delete after 5 minutes
-    schedule_message_deletion(context, message.chat_id, message.message_id)
-
 
 async def send_start_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message = await update.message.reply_text(
-        'Welcome👊 Start sending your queries, and I will reply!',
+    await update.message.reply_text(
+        'Welcome! Start sending your queries, and I will reply!',
     )
-    # Auto-delete after 5 minutes
-    schedule_message_deletion(context, message.chat_id, message.message_id)
 
+    # Schedule auto-deletion of the message
+    scheduler.add_job(
+        lambda: context.bot.delete_message(chat_message_id=update.message.message_id,
+                                                 chat_id=update.effective_chat.id),
+        trigger='date',
+        run_date=datetime.now() + timedelta(minutes=30)
+    )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
@@ -122,9 +120,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 reply = f"```\n{reply}\n```"
 
             # Send the reply to the user
-            message = await update.message.reply_text(reply, parse_mode="Markdown")
-            # Auto-delete after 5 minutes
-            schedule_message_deletion(context, message.chat_id, message.message_id)
+            await update.message.reply_text(reply, parse_mode="Markdown")
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Request error: {e}")
@@ -136,7 +132,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         # User needs to verify again
         await send_verification_message(update, context)
 
-
 async def handle_verification_redirect(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
     current_time = datetime.now()
@@ -145,17 +140,14 @@ async def handle_verification_redirect(update: Update, context: ContextTypes.DEF
     verification_collection.update_one(
         {'user_id': user_id},
         {'$set': {'last_verified': current_time}},
-        upsert=True
+        up_to_date=True
     )
-
-    # Log the verification in the log channel
-    await context.bot.send_message(
-        chat_id=LOG_CHANNEL,
-        text=f"User Verified: {update.effective_user.full_name} (@{update.effective_user.username or 'N/A'}, ID: {user_id})"
-    )
+    
+    # Send log to log channel
+    log_message = f"User {update.message.from_user.username} ({user_id}) has been verified."
+    await context.bot.send_message(chat_id=LOG_CHANNEL, text=log_message)
 
     await send_start_message(update, context)
-
 
 async def is_user_member_of_channel(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     try:
@@ -165,27 +157,22 @@ async def is_user_member_of_channel(context: ContextTypes.DEFAULT_TYPE, user_id:
         logger.error(f"Error checking membership: {e}")
         return False
 
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message with instructions on how to use the bot."""
+    help_message = """
+To use this bot, simply send a message with your query.
+The bot will respond with an answer.
 
-def schedule_message_deletion(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_id: int) -> None:
-    """Schedules a message for deletion after 5 minutes."""
-    scheduler.add_job(
-        context.bot.delete_message,
-        'date',
-        run_date=datetime.now() + timedelta(minutes=5),
-        kwargs={'chat_id': chat_id, 'message_id': message_id}
-    )
-
+Note: You need to join our updates channel (@chatgpt4for_free) to use this bot.
+    """
+    await update.message.reply_text(help_message)
 
 def main() -> None:
     application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
 
-    # Start scheduler within event loop
-    loop = asyncio.get_event_loop()
-    scheduler.configure(event_loop=loop)
-    scheduler.start()
-
     # Add handlers for commands and messages
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Use webhook setup for deployment
@@ -196,7 +183,6 @@ def main() -> None:
         url_path=os.getenv("TELEGRAM_TOKEN"),
         webhook_url=f"{webhook_url}/{os.getenv('TELEGRAM_TOKEN')}"
     )
-
 
 if __name__ == "__main__":
     main()
