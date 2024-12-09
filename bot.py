@@ -24,7 +24,7 @@ API_URL = "https://BJ-Devs.serv00.net/gpt4-o.php?text={}"
 VERIFICATION_INTERVAL = timedelta(hours=12)  # 12 hours for re-verification
 
 # Channel that users need to join to use the bot
-REQUIRED_CHANNEL = "@chatgpt4for_free"  # Replace with your channel
+REQUIRED_CHANNEL = "@public_botz"  # Replace with your channel
 
 # Channel where logs will be sent
 LOG_CHANNEL = "@chatgptlogs"  # Replace with your log channel
@@ -64,7 +64,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def send_join_channel_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [[InlineKeyboardButton("Join Channel", url=f"https://t.me/{REQUIRED_CHANNEL[1:]}")]]
+    keyboard = [[InlineKeyboardButton("Join Channel", url=f"https://t.me/public_botz")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     message = await update.message.reply_text(
         'To use this bot, you need to join our updates channel first.',
@@ -78,7 +78,7 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
     keyboard = [
         [InlineKeyboardButton(
             "I'm not a robot👨‍💼",
-            url=f"https://linkshortify.com/st?api=7d706f6d7c95ff3fae2f2f40cff10abdc0e012e9&url=https://t.me/chatgpt490_bot?start=verified"
+            url=f"https://api.shareus.io/direct_link?api_key=H8bZ2XFrpWeWYfhpHkdKAakwlIS2&pages=3&link=https://t.me/{context.bot.username}?start=verified"
         )],
         [InlineKeyboardButton(
             "How to open captcha🔗",
