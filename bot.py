@@ -136,18 +136,22 @@ async def handle_verification_redirect(update: Update, context: ContextTypes.DEF
     user_id = str(update.message.from_user.id)
     current_time = datetime.now()
 
-    # Update user verification status
-    verification_collection.update_one(
-        {'user_id': user_id},
-        {'$set': {'last_verified': current_time}},
-        up_to_date=True
-    )
-    
-    # Send log to log channel
-    log_message = f"User {update.message.from_user.username} ({user_id}) has been verified."
-    await context.bot.send_message(chat_id=LOG_CHANNEL, text=log_message)
+    # Check if the user has opened the verification link
+    if 'verified' in update.message.text:
+        # Update user verification status
+        verification_collection.update_one(
+            {'user_id': user_id},
+            {'$set': {'last_verified': current_time}},
+            upsert=True
+        )
+        
+        # Send log to log channel
+        log_message = f"User {update.message.from_user.username} ({user_id}) has been verified."
+        await context.bot.send_message(chat_id=LOG_CHANNEL, text=log_message)
 
-    await send_start_message(update, context)
+        await send_start_message(update, context)
+    else:
+        await update.message.reply_text("Invalid verification link.")
 
 async def is_user_member_of_channel(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     try:
