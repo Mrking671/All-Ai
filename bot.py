@@ -24,7 +24,7 @@ API_URL = "https://BJ-Devs.serv00.net/gpt4-o.php?text={}"
 VERIFICATION_INTERVAL = timedelta(hours=12)  # 12 hours for re-verification
 
 # Channel that users need to join to use the bot
-REQUIRED_CHANNEL = "@public_botz"  # Replace with your channel
+REQUIRED_CHANNEL = "https://t.me/public_botz"  # Replace with your channel
 
 # Channel where logs will be sent
 LOG_CHANNEL = "@chatgptlogs"  # Replace with your log channel
@@ -38,8 +38,6 @@ verification_collection = db['verification_data']
 
 # Scheduler for auto-deletion of messages
 scheduler = AsyncIOScheduler()
-scheduler.start()
-
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = str(update.message.from_user.id)
@@ -179,6 +177,10 @@ def schedule_message_deletion(context: ContextTypes.DEFAULT_TYPE, chat_id: int, 
 
 def main() -> None:
     application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
+
+    # Start scheduler within event loop
+    scheduler.configure(event_loop=application.updater.asyncio_event_loop)
+    scheduler.start()
 
     # Add handlers for commands and messages
     application.add_handler(CommandHandler("start", start))
