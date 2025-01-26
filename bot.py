@@ -1,6 +1,6 @@
 import os
 import logging
-import requests
+import google.generativeai as genai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler,
@@ -17,8 +17,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# New API URL (Default AI)
-API_URL = "https://BJ-Devs.serv00.net/gpt4-o.php?text={}"
+# Configure Gemini AI
+genai.configure(api_key="AIzaSyC712T9g0E43i3JcA2uSaNDS6kP8NjjjBY")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # Verification settings
 VERIFICATION_INTERVAL = timedelta(hours=12)  # 12 hours for re-verification
@@ -72,17 +73,17 @@ async def send_verification_message(update: Update, context: ContextTypes.DEFAUL
     verification_link = f"https://t.me/{context.bot.username}?start=verified"
     keyboard = [
         [InlineKeyboardButton(
-            "I'm not a robot👨‍💼",  # New button (not a web app)
-            url=f"https://api.shareus.io/direct_link?api_key=H8bZ2XFrpWeWYfhpHkdKAakwlIS2&pages=3&link=https://t.me/{context.bot.username}?start=verified"
+            "I'm not a robot🤖",  # New button (not a web app)
+            url=f"https://linkshortify.com/st?api=7d706f6d7c95ff3fae2f2f40cff10abdc0e012e9&url=https://t.me/{context.bot.username}?start=verified"
         )],
         [InlineKeyboardButton(
-            "How to open captcha🔗",  # New button (not a web app)
+            "How to open captcha",  # New button (not a web app)
             url="https://t.me/disneysworl_d/5"
         )]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        '♂️ 🅲🅰🅿🆃🅲🅷🅰 ♂️\n\nᴘʟᴇᴀsᴇ ᴠᴇʀɪғʏ ᴛʜᴀᴛ ʏᴏᴜ ᴀʀᴇ ʜᴜᴍᴀɴ 👨‍💼\nᴛᴏ ᴘʀᴇᴠᴇɴᴛ ᴀʙᴜsᴇ ᴡᴇ ᴇɴᴀʙʟᴇᴅ ᴛʜɪs ᴄᴀᴘᴛᴄʜᴀ\n𝗖𝗟𝗜𝗖𝗞 𝗛𝗘𝗥𝗘👇',
+        '⭕𝗖𝗔𝗣𝗧𝗖𝗛𝗔⭕\n\n𝐏𝐋𝐄𝐀𝐒𝐄 𝐕𝐄𝐑𝐈𝐅𝐘 𝐓𝐇𝐀𝐓 𝐘𝐎𝐔 𝐀𝐑𝐄 𝐀 𝐇𝐔𝐌𝐀𝐍 😳\n👇',
         reply_markup=reply_markup
     )
 
@@ -108,26 +109,27 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     last_verified = user_data.get('last_verified') if user_data else None
     if last_verified and current_time - last_verified < VERIFICATION_INTERVAL:
         user_message = update.message.text
+        
+        # Send prompt to behave as GPT-4 for response
+        prompt = f"You should behave like ChatGPT, an AI developed by OpenAI.If asked for version or model simply say gpt 4.Provide intelligent responses as GPT-4. User: {user_message}"
+        
         try:
-            response = requests.get(API_URL.format(user_message))
-            response_data = response.json()
+            # Use Gemini API for response generation but role-play as GPT-4
+            response = model.generate_content(prompt)
+            reply = response.text
 
-            # Get the reply field
-            reply = response_data.get("reply", "Sorry, no response was received.")
-
-            # Format as code if it appears to be code
-            if any(keyword in reply for keyword in ["def ", "import ", "{", "}", "=", "<", ">"]):
-                reply = f"```\n{reply}\n```"
+            # Check if the reply contains code-like structure
+            if any(keyword in reply for keyword in ["def ", "import ", "{", "}", "=", "<", ">", "class ", "function ", "def main"]):
+                reply = f"```\n{reply}\n```"  # Format as code block
+            else:
+                reply = reply.strip()  # Remove extra spaces if it's normal text
 
             # Send the reply to the user
             await update.message.reply_text(reply, parse_mode="Markdown")
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Request error: {e}")
+        except Exception as e:
+            logger.error(f"API error: {e}")
             await update.message.reply_text("There was an error retrieving the response. Please try again later.")
-        except ValueError as e:
-            logger.error(f"JSON decoding error: {e}")
-            await update.message.reply_text("Error parsing the response from the API. Please try again later.")
     else:
         # User needs to verify again
         await send_verification_message(update, context)
