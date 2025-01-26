@@ -3,3 +3,4 @@ dnspython==2.3.0
 requests==2.31.0
 pymongo[srv]==4.2.0
 apscheduler
+google-generativeai
